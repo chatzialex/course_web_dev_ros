@@ -11,6 +11,13 @@ from nav_msgs.msg import Odometry
 from tf import transformations
 import math
 
+
+def normalize_angle(angle):
+    # Normalize angle to be within [-pi, pi)
+    normalized_angle = (angle + math.pi) % (2 * math.pi) - math.pi
+    return normalized_angle
+
+
 class WaypointActionClass(object):
 
     # create messages that are used to publish feedback/result
@@ -30,12 +37,13 @@ class WaypointActionClass(object):
     # goal
     _des_pos = Point()
     # parameters
-    _yaw_precision = math.pi / 90 # +/- 2 degree allowed
+    _yaw_precision = math.pi / 90  # +/- 2 degree allowed
     _dist_precision = 0.05
 
     def __init__(self):
         # creates the action server
-        self._as = actionlib.SimpleActionServer("tortoisebot_as", WaypointActionAction, self.goal_callback, False)
+        self._as = actionlib.SimpleActionServer(
+            "tortoisebot_as", WaypointActionAction, self.goal_callback, False)
         self._as.start()
 
         # define a loop rate
@@ -67,16 +75,20 @@ class WaypointActionClass(object):
 
         # define desired position and errors
         self._des_pos = goal.position
-        desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
-        err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
-        err_yaw = desired_yaw - self._yaw
+        desired_yaw = math.atan2(
+            self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
+        err_pos = math.sqrt(pow(self._des_pos.y - self._position.y,
+                            2) + pow(self._des_pos.x - self._position.x, 2))
+        err_yaw = normalize_angle(desired_yaw - self._yaw)
 
         # perform task
         while err_pos > self._dist_precision and success:
             # update vars
-            desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
-            err_yaw = desired_yaw - self._yaw
-            err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
+            desired_yaw = math.atan2(
+                self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
+            err_yaw = normalize_angle(desired_yaw - self._yaw)
+            err_pos = math.sqrt(pow(self._des_pos.y - self._position.y,
+                                2) + pow(self._des_pos.x - self._position.x, 2))
             rospy.loginfo("Current Yaw: %s" % str(self._yaw))
             rospy.loginfo("Desired Yaw: %s" % str(desired_yaw))
             rospy.loginfo("Error Yaw: %s" % str(err_yaw))
@@ -121,6 +133,7 @@ class WaypointActionClass(object):
         if success:
             self._result.success = True
             self._as.set_succeeded(self._result)
+
 
 if __name__ == '__main__':
     rospy.init_node('tortoisebot_as')
