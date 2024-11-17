@@ -38,6 +38,7 @@ class WaypointActionClass(object):
     _des_pos = Point()
     # parameters
     _yaw_precision = math.pi / 90  # +/- 2 degree allowed
+    _max_angular_z = 0.65
     _dist_precision = 0.05
 
     def __init__(self):
@@ -103,7 +104,7 @@ class WaypointActionClass(object):
                 rospy.loginfo("fix yaw")
                 self._state = 'fix yaw'
                 twist_msg = Twist()
-                twist_msg.angular.z = 0.65 if err_yaw > 0 else -0.65
+                twist_msg.angular.z = self._max_angular_z if err_yaw > 0 else -self._max_angular_z
                 self._pub_cmd_vel.publish(twist_msg)
             else:
                 # go to point
@@ -111,7 +112,7 @@ class WaypointActionClass(object):
                 self._state = 'go to point'
                 twist_msg = Twist()
                 twist_msg.linear.x = 0.6
-                twist_msg.angular.z = 0
+                twist_msg.angular.z = err_yaw*self._max_angular_z/self._yaw_precision
                 # twist_msg.angular.z = 0.1 if err_yaw > 0 else -0.1
                 self._pub_cmd_vel.publish(twist_msg)
 
